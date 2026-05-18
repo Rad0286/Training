@@ -19,6 +19,34 @@ WORKFLOW_ID  = "4de98216-8278-49cc-a549-dcbf269588ab"
 # Max characters to send (safety measure for very large PDFs)
 MAX_CHARS = 400_000
 
+# ── Hardcoded system prompt ────────────────────────────────────────────────────
+SYSTEM_PROMPT = """You are a legal research assistant specializing in identifying case references in legal judgments.
+
+Your task is to extract ALL case references cited in the judgment provided. A case reference is any citation to a legal case, decision, or judgment.
+
+Instructions:
+1. Read through the entire judgment carefully.
+2. Identify every case reference cited, including:
+   - Named cases (e.g., "Smith v. Jones, 2020 ONCA 123")
+   - Neutral citations (e.g., "2019 SCC 42")
+   - Law report citations (e.g., "[2018] 2 SCR 456")
+   - Decision numbers (e.g., "Decision No. 280/87")
+3. Extract the full reference as it appears in the text.
+4. Do NOT include references to legislation, statutes, or regulations.
+5. Do NOT include the judge's own case name (the case being decided).
+
+Output format:
+- List ONLY the case references, one per line.
+- Do not include any explanation, preamble, or commentary.
+- Start your output with the exact heading: Final References
+- If no case references are found, write: Final References\nNo References
+
+Example output:
+Final References
+Smith v. Jones, 2020 ONCA 123
+R. v. Brown, [2019] 2 SCR 100
+Decision No. 280/87 (WSIAT)"""
+
 
 def extract_pdf_text(pdf_path: str) -> str:
     """Extract all text from a PDF file using pdfplumber."""
@@ -31,13 +59,7 @@ def extract_pdf_text(pdf_path: str) -> str:
     return "\n".join(text_parts)
 
 
-def load_instructions(txt_path: str) -> str:
-    """Load the instruction prompt from the .txt file."""
-    with open(txt_path, "r", encoding="utf-8") as f:
-        return f.read()
-
-
-def call_tr_endpoint(pdf_text: str, system_prompt: str, pdf_name: str) -> str:
+def call_tr_endpoint(pdf_text: str, pdf_name: str) -> str:
     """
     POST to the TR AI Open Arena endpoint.
     Returns the raw text response from the model.
@@ -66,7 +88,7 @@ def call_tr_endpoint(pdf_text: str, system_prompt: str, pdf_name: str) -> str:
         "is_persistence_allowed": False,
         "modelparams": {
             "system_prompt_LLM_task": {
-                "system_prompt": system_prompt
+                "system_prompt": SYSTEM_PROMPT
             },
             "llm_LLM_task": {
                 "effort": "high",
@@ -185,9 +207,9 @@ def parse_references(raw_response: str) -> list[str]:
     return references
 
 
-def extract_references(pdf_path: str, instructions_path: str) -> list[str]:
+def extract_references(pdf_path: str) -> list[str]:
     """
-    Main entry point: given a PDF path and instructions path,
+    Main entry point: given a PDF path,
     return a list of case references extracted by the TR LLM endpoint.
     """
     pdf_name = os.path.basename(pdf_path)
@@ -195,9 +217,7 @@ def extract_references(pdf_path: str, instructions_path: str) -> list[str]:
     pdf_text = extract_pdf_text(pdf_path)
     print(f"  Extracted {len(pdf_text):,} characters from PDF.")
 
-    system_prompt = load_instructions(instructions_path)
-
-    raw_response = call_tr_endpoint(pdf_text, system_prompt, pdf_name)
+    raw_response = call_tr_endpoint(pdf_text, pdf_name)
 
     references = parse_references(raw_response)
     print(f"  Model returned {len(references)} reference(s).")

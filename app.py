@@ -66,10 +66,9 @@ with st.sidebar:
     st.markdown("""
     **How to use:**
     1. Paste your ESSO token above and click Save
-    2. Upload your `Reflist_Prompt.txt` instructions file
-    3. Upload one or more PDF files
-    4. Click **Run** to extract and highlight references
-    5. Download the highlighted PDFs
+    2. Upload one or more PDF files
+    3. Click **Run** to extract and highlight references
+    4. Download the highlighted PDFs
     """)
 
 # ── Resolve token (session state takes priority) ───────────────────────────────
@@ -81,15 +80,6 @@ if current_token and not os.environ.get("TR_ESSO_TOKEN"):
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("📋 Instructions File")
-    instructions_file = st.file_uploader(
-        "Upload `Reflist_Prompt.txt`",
-        type=["txt"],
-        help="The instruction file that tells Claude how to extract case references"
-    )
-    if instructions_file:
-        st.success(f"✅ Instructions loaded: `{instructions_file.name}`")
-
     st.subheader("📄 PDF Files")
     uploaded_pdfs = st.file_uploader(
         "Upload PDF file(s)",
@@ -107,12 +97,10 @@ with col2:
 
     if not token_ok:
         st.error("⚠️ No authorization token — set it in the sidebar.")
-    if not instructions_file:
-        st.warning("⚠️ Please upload `Reflist_Prompt.txt`.")
     if not uploaded_pdfs:
         st.warning("⚠️ Please upload at least one PDF.")
 
-    can_run = token_ok and instructions_file and uploaded_pdfs
+    can_run = token_ok and uploaded_pdfs
     if can_run:
         st.info(f"Ready to process **{len(uploaded_pdfs)}** PDF(s).")
 
@@ -131,9 +119,6 @@ if run_button and can_run:
     st.divider()
     st.subheader("📊 Processing Results")
 
-    # Read instructions content once
-    instructions_text = instructions_file.read().decode("utf-8")
-
     summary = []
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -151,16 +136,11 @@ if run_button and can_run:
                     with open(pdf_path, "wb") as f:
                         f.write(pdf_file.read())
 
-                    # Save instructions to temp
-                    instr_path = os.path.join(tmp_dir, "Reflist_Prompt.txt")
-                    with open(instr_path, "w", encoding="utf-8") as f:
-                        f.write(instructions_text)
-
                     output_dir = os.path.join(tmp_dir, "output")
                     os.makedirs(output_dir, exist_ok=True)
 
                     st.write("🔍 Extracting text and calling Claude AI...")
-                    references = extract_references(pdf_path, instr_path)
+                    references = extract_references(pdf_path)
 
                     if not references:
                         st.warning("No case references found.")
