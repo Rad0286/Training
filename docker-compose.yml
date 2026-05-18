@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  case-reflist-app:
+    build: .
+    image: case-reflist-app:latest
+    container_name: case-reflist-app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount input and output folders from the host so PDFs are accessible
+      # Change the left side (before :) to your actual paths on the host machine
+      - "./input:/app/input"
+      - "./output:/app/output"
+    environment:
+      # Optionally pre-set the ESSO token via environment variable.
+      # The app UI can also be used to set/update the token.
+      - TR_ESSO_TOKEN=${TR_ESSO_TOKEN:-}
+    restart: unless-stopped

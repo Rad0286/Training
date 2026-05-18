@@ -1,0 +1,7 @@
+.env
+run_log.txt
+test_log.txt
+__pycache__/
+*.pyc
+*.pyo
+.git/
