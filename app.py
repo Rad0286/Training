@@ -31,7 +31,10 @@ with st.sidebar:
     st.header("🔑 Authorization")
 
     # Support both .env (local) and st.secrets (Streamlit Cloud)
-    current_token = st.secrets.get("TR_ESSO_TOKEN", "") if hasattr(st, "secrets") and "TR_ESSO_TOKEN" in st.secrets else os.getenv("TR_ESSO_TOKEN", "")
+    try:
+        current_token = st.secrets.get("TR_ESSO_TOKEN", "") if "TR_ESSO_TOKEN" in st.secrets else os.getenv("TR_ESSO_TOKEN", "")
+    except (FileNotFoundError, Exception):
+        current_token = os.getenv("TR_ESSO_TOKEN", "")
     current_token = current_token.strip()
 
     token_display = current_token[:40] + "..." if len(current_token) > 40 else current_token
